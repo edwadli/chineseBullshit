@@ -7,5 +7,8 @@ chinese Bullshit card game
 
 TODO:
 docs
+Fix turn mechanic
+GUI
+AI
 
 
