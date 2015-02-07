@@ -2,6 +2,7 @@
 package corebullshit;
 
 import java.util.*;
+import structures.*;
 
 public class Table
 {
@@ -12,7 +13,8 @@ public class Table
    
 
     // fields
-    private ArrayList<Player> players;
+    //private ArrayList<Player> players;
+    private Roster<Player> players;
     private Deck deck;
     private int numDecks;
 
@@ -20,13 +22,13 @@ public class Table
     public Table(int numDecks){
         this.numDecks = numDecks;
         this.deck = new Deck(this.numDecks);
-        this.players = new ArrayList<Player>();
+        this.players = new Roster<Player>();
     }
 
     public Table(int numPlayers, int numDecks){
         this.numDecks = numDecks;
         this.deck = new Deck(this.numDecks);
-        this.players = new ArrayList<Player>();
+        this.players = new Roster<Player>();
         for (int i=0; i<numPlayers; i++){
             // add player to the table
             this.players.add(new Player());
@@ -37,17 +39,19 @@ public class Table
         this.players.add(player);
     }
 
-    public Player removePlayer(int index){
-        return this.players.remove(index);
+    public Player removePlayer(Player player){
+        return this.players.remove(player);
     }
 
     public void dealCards(int numberCards){
-        if (players.size() == 0){
+        if (this.players.size() == 0){
             // TODO: maybe change this to exception?
             return;
         }
         int numPlayers = this.players.size();
         int cardsPerPlayer = numberCards/numPlayers;
+        RosterIterator<Player> iter = this.players.iterator();
+        Player player = iter.next();
         for (int i=0; i<numPlayers; i++){
             Hand hand = new Hand(this.deck.deal(cardsPerPlayer));
             // also give first few players the left over cards
@@ -55,7 +59,8 @@ public class Table
                 hand.addCard(this.deck.deal());
             }
             // give the player this hand
-            this.players.get(i).setHand(hand);
+            player.setHand(hand);
+            player = iter.next();
         }
     }
 
@@ -88,16 +93,25 @@ public class Table
         return this.deck.getNumCards();
     }
 
-    public Player getPlayer(int index){
-        return this.players.get(index);
+    public Set<Player> getPlayers(){
+        return this.players.getKeys();
     }
 
-    public List<Player> getPlayers(){
-        return Collections.unmodifiableList(this.players);
+    public boolean hasPlayer(Player player){
+        return this.players.contains(player);
     }
 
     public int numPlayers(){
         return this.players.size();
     }
 
+    public RosterIterator<Player> iterator(){
+        return this.players.iterator();
+    }
+
+    public RosterIterator<Player> iterator(Player player){
+        return this.players.iterator(player);
+    }
+
 }
+

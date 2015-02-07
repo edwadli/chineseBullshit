@@ -9,6 +9,7 @@ public class Player
     private Hand hand;
     private boolean isOrganized;
     private LinkedList<Integer> selectedCards;
+    private String name;
 
     // constructors
     public Player(){
@@ -18,6 +19,21 @@ public class Player
     public Player(Hand hand) {
         this.hand = hand;
         this.selectedCards = new LinkedList<Integer>();
+    }
+
+    public Player(String name){
+        this.hand = new Hand();
+        this.selectedCards = new LinkedList<Integer>();
+        this.name = name;
+    }
+    public Player(String name, Hand hand){
+        this.hand = hand;
+        this.selectedCards = new LinkedList<Integer>();
+        this.name = name;
+    }
+
+    public void setName(String name){
+        this.name = name;
     }
 
     public List<Card> getHand(){
@@ -167,6 +183,17 @@ public class Player
     public ArrayList<Rank> selectCard(int index) throws IndexOutOfBoundsException{
         int max = this.hand.getNumCards();
         return this.selectCard(index, max);
+    }
+
+    @Override
+    public String toString(){
+        if (this.name == null){
+            // assigned default unique name
+            return "p"+this.hashCode();
+        }
+        else {
+            return this.name;
+        }
     }
 
 }

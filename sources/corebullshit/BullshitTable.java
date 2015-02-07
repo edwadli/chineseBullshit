@@ -2,13 +2,17 @@
 package corebullshit;
 
 import java.util.*;
+import structures.*;
 
 public class BullshitTable extends Table
 {
     // fields
     private ArrayList<Card> pile;
-    private int lastPlayer;
-    private int nextPlayer;
+    //private int lastPlayer;
+    //private int nextPlayer;
+    private BullshitPlayer lastPlayer;
+    private BullshitPlayer nextPlayer;
+    private RosterIterator<Player> turnIterator;
     // gameplay values
     private boolean canCallBS;
     private int numCardsPlayed;
@@ -24,10 +28,11 @@ public class BullshitTable extends Table
             super.addPlayer(new BullshitPlayer(this));
         }
         this.winners = new ArrayList<BullshitPlayer>();
+        this.turnIterator = super.iterator();
     }
 
     // methods
-    public void resetTable(int numDecks, int startingPlayer){
+    public void resetTable(int numDecks, BullshitPlayer startingPlayer){
         super.resetDeck(numDecks);
         this.pile.clear();
         // add any winners (removed from game) back
@@ -40,10 +45,11 @@ public class BullshitTable extends Table
         this.rankCalled = null;
         this.lastPlayer = startingPlayer;
         this.nextPlayer = startingPlayer;
+        this.turnIterator = super.iterator(startingPlayer);
     }
 
     public void resetTable(int numDecks){
-        this.resetTable(numDecks, 0);
+        this.resetTable(numDecks, (BullshitPlayer)this.turnIterator.next());
     }
 
     public void resetTable(){
@@ -76,8 +82,8 @@ public class BullshitTable extends Table
     }
 
     public boolean isCallBS() {return this.canCallBS;}// currently unused
-    public BullshitPlayer getLastPlayer() {return (BullshitPlayer)super.getPlayer(this.lastPlayer);}
-    public BullshitPlayer getNextPlayer() {return (BullshitPlayer)super.getPlayer(this.nextPlayer);}
+    public BullshitPlayer getLastPlayer() {return this.lastPlayer;}
+    public BullshitPlayer getNextPlayer() {return this.nextPlayer;}
     public int getSizePile() {return this.pile.size();}
     public int getSizeCalled() {return this.numCardsPlayed;}
     public Rank getRankCalled() {return this.rankCalled;}
@@ -86,15 +92,14 @@ public class BullshitTable extends Table
    
 
     // gameplay logic methods
-    public boolean nextTurnChallenged(Player challenger) throws InvalidMoveException {
+    public boolean nextTurnChallenged(BullshitPlayer challenger) throws InvalidMoveException {
         // takes care of turn mechanics after bullshit is called
         // return true if the challenge is successful;
         // return false if cards on table are consistent with the call
         if (this.canCallBS == false){
             throw new InvalidMoveException("Can't call BS right now!");
         }
-        int challengerPosition = super.getPlayers().indexOf(challenger);
-        if (challengerPosition == -1){
+        if (!super.hasPlayer(challenger)){
             throw new InvalidMoveException("Player not at table!");
         }
         boolean isConsistent = verify();
@@ -104,10 +109,10 @@ public class BullshitTable extends Table
             // the challenge fails - give turn to accused
             //  (unless accused has won due to this challenge)
             loser = challenger;
-            if (super.getPlayer(this.lastPlayer).sizeHand() == 0){
+            if (this.lastPlayer.sizeHand() == 0){
                 // turn logic if someone is now out of cards
                 this.winners.add(this.removeLastPlayer());
-                if (this.nextPlayer == challengerPosition){
+                if (this.nextPlayer == challenger){
                     // skip this loser's turn
                     this.shiftTurn();
                 }
@@ -119,8 +124,8 @@ public class BullshitTable extends Table
         }
         else {
             // the challenge stands - give turn to challenger
-            loser = super.getPlayer(this.lastPlayer);
-            this.nextPlayer = challengerPosition;
+            loser = this.lastPlayer;
+            this.nextPlayer = challenger;
         }
         // make the loser take all the cards
         loser.takeCards(this.clearPile());
@@ -136,7 +141,7 @@ public class BullshitTable extends Table
     public void placeCards(Player player)
         throws InvalidMoveException, IndexOutOfBoundsException{
 
-        if (player != super.getPlayer(this.nextPlayer)){
+        if (player != this.nextPlayer){
             throw new InvalidMoveException("Not your turn!");
         }
         int previousSize = this.pile.size();
@@ -145,7 +150,7 @@ public class BullshitTable extends Table
         // update gameplay values, update turns
         if (this.canCallBS == true){
             // check if any player won
-            if (super.getPlayer(this.lastPlayer).sizeHand() == 0){
+            if (this.lastPlayer.sizeHand() == 0){
                 this.winners.add(this.removeLastPlayer());
             }
             // continue the play
@@ -158,17 +163,13 @@ public class BullshitTable extends Table
     }
 
     public BullshitPlayer removeLastPlayer(){
-        BullshitPlayer player = (BullshitPlayer) super.removePlayer(this.lastPlayer);
-        if (this.nextPlayer >= this.lastPlayer){
-            // make sure indexing still works
-            this.nextPlayer--;
-        }
+        BullshitPlayer player = (BullshitPlayer)super.removePlayer(this.lastPlayer);
         this.lastPlayer = this.nextPlayer;
         return player;
     }
 
     public void chooseRank(Player player, Rank rank) throws InvalidMoveException{
-        if (player != super.getPlayer(this.nextPlayer)){
+        if (player != this.nextPlayer){
             throw new InvalidMoveException("Not your turn!");
         }
         if (this.rankCalled != null) {
@@ -180,13 +181,13 @@ public class BullshitTable extends Table
 
     public void shiftTurn(){
         this.lastPlayer = this.nextPlayer;
-        this.nextPlayer = (this.nextPlayer+1)%super.numPlayers();
+        this.nextPlayer = (BullshitPlayer) this.turnIterator.next();
     }
 
     public void nextTurnPlayed(Player player) throws InvalidMoveException{
         // takes care of turn mechanics after cards have been played
         
-        if (player != super.getPlayer(this.nextPlayer)){
+        if (player != this.nextPlayer){
             throw new InvalidMoveException("Not your turn!");
         }
         if (this.canCallBS == true) {
